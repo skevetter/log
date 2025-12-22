@@ -15,11 +15,10 @@ import (
 )
 
 type fileLogger struct {
-	logger *logrus.Logger
+	logger logrus.FieldLogger
 
-	m     *sync.Mutex
-	level logrus.Level
-	// sinks    []Logger
+	m        *sync.Mutex
+	level    logrus.Level
 	prefixes []string
 }
 
@@ -27,18 +26,19 @@ var _ Logger = &fileLogger{}
 
 // NewFileLogger returns a logger instance for the specified filename
 func NewFileLogger(logFile string, level logrus.Level) Logger {
-	newLogger := &fileLogger{
-		logger: logrus.New(),
-		m:      &sync.Mutex{},
-	}
-	newLogger.logger.Formatter = &logrus.JSONFormatter{}
-	newLogger.logger.SetOutput(&lumberjack.Logger{
+	logger := logrus.New()
+	logger.Formatter = &logrus.JSONFormatter{}
+	logger.SetOutput(&lumberjack.Logger{
 		Filename:   logFile,
 		MaxAge:     12,
 		MaxBackups: 4,
 		MaxSize:    10 * 1024 * 1024,
 	})
 
+	newLogger := &fileLogger{
+		logger: logger,
+		m:      &sync.Mutex{},
+	}
 	newLogger.SetLevel(level)
 	return newLogger
 }
@@ -256,7 +256,12 @@ func (f *fileLogger) Writer(level logrus.Level, raw bool) io.WriteCloser {
 }
 
 func (f *fileLogger) Write(message []byte) (int, error) {
-	return f.logger.Out.Write(message)
+	if entry, ok := f.logger.(*logrus.Entry); ok {
+		return entry.Logger.Out.Write(message)
+	} else if logger, ok := f.logger.(*logrus.Logger); ok {
+		return logger.Out.Write(message)
+	}
+	return 0, nil
 }
 
 func (f *fileLogger) WriteLevel(level logrus.Level, message []byte) (int, error) {
@@ -267,7 +272,16 @@ func (f *fileLogger) WriteLevel(level logrus.Level, message []byte) (int, error)
 		return 0, nil
 	}
 
-	return f.logger.Out.Write([]byte(stripEscapeSequences(string(message))))
+	var w io.Writer
+	if entry, ok := f.logger.(*logrus.Entry); ok {
+		w = entry.Logger.Out
+	} else if logger, ok := f.logger.(*logrus.Logger); ok {
+		w = logger.Out
+	} else {
+		return 0, nil
+	}
+
+	return w.Write([]byte(stripEscapeSequences(string(message))))
 }
 
 func (f *fileLogger) WriteString(level logrus.Level, message string) {
@@ -278,7 +292,16 @@ func (f *fileLogger) WriteString(level logrus.Level, message string) {
 		return
 	}
 
-	_, _ = f.logger.Out.Write([]byte(stripEscapeSequences(message)))
+	var w io.Writer
+	if entry, ok := f.logger.(*logrus.Entry); ok {
+		w = entry.Logger.Out
+	} else if logger, ok := f.logger.(*logrus.Logger); ok {
+		w = logger.Out
+	} else {
+		return
+	}
+
+	_, _ = w.Write([]byte(stripEscapeSequences(message)))
 }
 
 func stripEscapeSequences(str string) string {
@@ -317,6 +340,16 @@ func (f *fileLogger) WithPrefixColor(prefix, color string) Logger {
 	n := *f
 	n.m = &sync.Mutex{}
 	n.prefixes = append(n.prefixes, prefix)
+	return &n
+}
+
+func (f *fileLogger) WithFields(fields Fields) Logger {
+	f.m.Lock()
+	defer f.m.Unlock()
+
+	n := *f
+	n.m = &sync.Mutex{}
+	n.logger = f.logger.WithFields(logrus.Fields(fields))
 	return &n
 }
 

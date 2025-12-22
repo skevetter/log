@@ -53,9 +53,14 @@ type SimpleLogger interface {
 	Infof(format string, args ...interface{})
 }
 
+// Fields is a map of fields that should be added to the log message
+type Fields map[string]any
+
 // Logger defines the devspace common logging interface
 type Logger interface {
 	BaseLogger
+
+	WithFields(fields Fields) Logger
 
 	Question(params *survey.QuestionOptions) (string, error)
 	ErrorStreamOnly() Logger
@@ -63,4 +68,9 @@ type Logger interface {
 	Writer(level logrus.Level, raw bool) io.WriteCloser
 	WriteString(level logrus.Level, message string)
 	WriteLevel(level logrus.Level, message []byte) (int, error)
+}
+
+// WithFields creates a new logger with the given fields
+func WithFields(fields Fields) Logger {
+	return GetInstance().WithFields(fields)
 }
