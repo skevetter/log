@@ -116,7 +116,7 @@ type StreamLogger struct {
 
 	survey survey.Survey
 
-	fields map[string]any
+	fields logrus.Fields
 	sinks  []Logger
 }
 
@@ -138,7 +138,7 @@ type Line struct {
 	Level logrus.Level `json:"level,omitempty"`
 
 	// Fields are the fields of the log message
-	Fields map[string]any `json:"fields,omitempty"`
+	Fields logrus.Fields `json:"fields,omitempty"`
 }
 
 type fnTypeInformation struct {
@@ -254,13 +254,13 @@ func (s *StreamLogger) WithPrefixColor(prefix, color string) Logger {
 	return &n
 }
 
-func (s *StreamLogger) WithFields(fields Fields) Logger {
+func (s *StreamLogger) WithFields(fields logrus.Fields) Logger {
 	s.m.Lock()
 	defer s.m.Unlock()
 
 	n := *s
 	n.m = &sync.Mutex{}
-	n.fields = map[string]any{}
+	n.fields = logrus.Fields{}
 	maps.Copy(n.fields, s.fields)
 	maps.Copy(n.fields, fields)
 	return &n
