@@ -343,13 +343,13 @@ func (f *fileLogger) WithPrefixColor(prefix, color string) Logger {
 	return &n
 }
 
-func (f *fileLogger) WithFields(fields Fields) Logger {
+func (f *fileLogger) WithFields(fields logrus.Fields) Logger {
 	f.m.Lock()
 	defer f.m.Unlock()
 
 	n := *f
 	n.m = &sync.Mutex{}
-	n.logger = f.logger.WithFields(logrus.Fields(fields))
+	n.logger = f.logger.WithFields(fields)
 	return &n
 }
 

@@ -15,7 +15,7 @@ func TestWithFields(t *testing.T) {
 		logger := NewStreamLogger(&output, &output, logrus.InfoLevel)
 		logger.SetFormat(TextFormat)
 
-		logger.WithFields(Fields{
+		logger.WithFields(logrus.Fields{
 			"animal": "walrus",
 			"size":   10,
 		}).Info("A group of walrus emerges from the ocean")
@@ -34,7 +34,7 @@ func TestWithFields(t *testing.T) {
 		logger := NewStreamLogger(&output, &output, logrus.InfoLevel)
 		logger.SetFormat(JSONFormat)
 
-		logger.WithFields(Fields{
+		logger.WithFields(logrus.Fields{
 			"animal": "walrus",
 			"size":   10,
 		}).Info("A group of walrus emerges from the ocean")
@@ -62,9 +62,29 @@ func TestWithFields(t *testing.T) {
 	t.Run("GlobalWithFields", func(t *testing.T) {
 		// This just checks if it compiles and runs without panic,
 		// capturing output of global logger is harder without mocking os.Stdout
-		l := WithFields(Fields{"foo": "bar"})
+		l := WithFields(logrus.Fields{"foo": "bar"})
 		if l == nil {
 			t.Fatal("expected logger, got nil")
 		}
+	})
+
+	t.Run("DiscardLogger", func(t *testing.T) {
+		logger := NewDiscardLogger(logrus.InfoLevel)
+		l := logger.WithFields(logrus.Fields{"test": "value"})
+		if l == nil {
+			t.Fatal("expected logger, got nil")
+		}
+		// Should not panic
+		l.Info("test message")
+	})
+
+	t.Run("FileLogger", func(t *testing.T) {
+		tmpFile := "/tmp/test.log"
+		logger := NewFileLogger(tmpFile, logrus.InfoLevel)
+		l := logger.WithFields(logrus.Fields{"file": "test"})
+		if l == nil {
+			t.Fatal("expected logger, got nil")
+		}
+		l.Info("test message")
 	})
 }

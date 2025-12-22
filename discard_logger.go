@@ -140,7 +140,7 @@ func (f *discardLogger) Question(params *survey.QuestionOptions) (string, error)
 	return "", errors.New("questions in file logger not supported")
 }
 
-func (f *discardLogger) WithFields(fields Fields) Logger {
+func (f *discardLogger) WithFields(fields logrus.Fields) Logger {
 	return f
 }
 
