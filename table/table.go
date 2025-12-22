@@ -2,11 +2,11 @@ package table
 
 import (
 	"io"
-	"runtime"
 
 	"github.com/loft-sh/log"
 	"github.com/loft-sh/log/scanner"
 	"github.com/olekukonko/tablewriter"
+	"github.com/olekukonko/tablewriter/tw"
 	"github.com/sirupsen/logrus"
 )
 
@@ -29,26 +29,26 @@ func PrintTableWithOptions(s log.Logger, header []string, values [][]string, mod
 		}
 	}()
 
-	table := tablewriter.NewWriter(writer)
-	table.SetHeader(header)
-	if runtime.GOOS == "darwin" || runtime.GOOS == "linux" {
-		colors := []tablewriter.Colors{}
-		for range header {
-			colors = append(colors, tablewriter.Color(tablewriter.FgGreenColor))
-		}
-		table.SetHeaderColor(colors...)
+	alignment := make(tw.Alignment, len(header))
+	for i := range alignment {
+		alignment[i] = tw.AlignLeft
 	}
 
-	table.SetAlignment(tablewriter.ALIGN_LEFT)
-	table.SetBorders(tablewriter.Border{Left: false, Top: false, Right: false, Bottom: false})
-	table.AppendBulk(values)
+	opts := []tablewriter.Option{
+		tablewriter.WithAlignment(alignment),
+	}
+
+	table := tablewriter.NewTable(writer, opts...)
+
 	if modify != nil {
 		modify(table)
 	}
 
 	// Render
 	_, _ = writer.Write([]byte("\n"))
-	table.Render()
+	table.Header(header)
+	table.Bulk(values)
+	_ = table.Render()
 	_, _ = writer.Write([]byte("\n"))
 	_ = writer.Close()
 	<-done
