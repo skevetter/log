@@ -1,4 +1,4 @@
-module github.com/loft-sh/log
+module github.com/skevetter/log
 
 go 1.25.5
 

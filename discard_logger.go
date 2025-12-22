@@ -7,8 +7,8 @@ import (
 	"sync"
 
 	"github.com/go-logr/logr"
-	"github.com/loft-sh/log/survey"
 	"github.com/sirupsen/logrus"
+	"github.com/skevetter/log/survey"
 )
 
 var Discard = NewDiscardLogger(logrus.InfoLevel)

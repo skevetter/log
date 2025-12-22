@@ -9,8 +9,8 @@ import (
 
 	"github.com/acarl005/stripansi"
 	"github.com/go-logr/logr"
-	"github.com/loft-sh/log/survey"
 	"github.com/sirupsen/logrus"
+	"github.com/skevetter/log/survey"
 	lumberjack "gopkg.in/natefinch/lumberjack.v2"
 )
 
