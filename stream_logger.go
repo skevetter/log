@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"strconv"
 	"strings"
@@ -115,7 +116,8 @@ type StreamLogger struct {
 
 	survey survey.Survey
 
-	sinks []Logger
+	fields map[string]any
+	sinks  []Logger
 }
 
 var _ Logger = &StreamLogger{}
@@ -134,6 +136,9 @@ type Line struct {
 
 	// Level is the log level this message has used
 	Level logrus.Level `json:"level,omitempty"`
+
+	// Fields are the fields of the log message
+	Fields map[string]any `json:"fields,omitempty"`
 }
 
 type fnTypeInformation struct {
@@ -249,6 +254,18 @@ func (s *StreamLogger) WithPrefixColor(prefix, color string) Logger {
 	return &n
 }
 
+func (s *StreamLogger) WithFields(fields Fields) Logger {
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	n := *s
+	n.m = &sync.Mutex{}
+	n.fields = map[string]any{}
+	maps.Copy(n.fields, s.fields)
+	maps.Copy(n.fields, fields)
+	return &n
+}
+
 func (s *StreamLogger) AddSink(log Logger) {
 	s.m.Lock()
 	defer s.m.Unlock()
@@ -312,18 +329,33 @@ func (s *StreamLogger) writeMessage(fnType logFunctionType, message string) {
 
 	if s.level >= fnInformation.logLevel {
 		stream := s.getStream(fnInformation.logLevel)
-		if s.format == RawFormat {
+		switch s.format {
+		case RawFormat:
 			_, _ = stream.Write([]byte(message))
-		} else if s.format == TimeFormat {
+		case TimeFormat:
 			now := time.Now()
 			_, _ = stream.Write([]byte(ansi.Color(formatInt(now.Hour())+":"+formatInt(now.Minute())+":"+formatInt(now.Second())+" ", "white+b")))
 			_, _ = stream.Write([]byte(message))
-		} else if s.format == TextFormat {
+		case TextFormat:
 			now := time.Now()
 			_, _ = stream.Write([]byte(ansi.Color(formatInt(now.Hour())+":"+formatInt(now.Minute())+":"+formatInt(now.Second())+" ", "white+b")))
 			_, _ = stream.Write([]byte(ansi.Color(fnInformation.tag, fnInformation.color)))
 			_, _ = stream.Write([]byte(message))
-		} else if s.format == JSONFormat {
+
+			// Write fields if present
+			if len(s.fields) > 0 {
+				fieldsStr := ""
+				for k, v := range s.fields {
+					fieldsStr += fmt.Sprintf("\n%s=%v", k, v)
+				}
+				if fieldsStr != "" {
+					_, _ = stream.Write([]byte(fieldsStr))
+					if !strings.HasSuffix(message, "\n") {
+						_, _ = stream.Write([]byte("\n"))
+					}
+				}
+			}
+		case JSONFormat:
 			s.writeJSON(message, fnInformation.logLevel)
 		}
 	}
@@ -349,6 +381,7 @@ func (s *StreamLogger) writeJSON(message string, level logrus.Level) {
 			Time:    time.Now(),
 			Message: stripansi.Strip(strings.TrimSpace(message)),
 			Level:   level,
+			Fields:  s.fields,
 		})
 		if err == nil {
 			_, _ = stream.Write([]byte(string(line) + "\n"))
