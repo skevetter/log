@@ -3,11 +3,11 @@ package table
 import (
 	"io"
 
-	"github.com/loft-sh/log"
-	"github.com/loft-sh/log/scanner"
 	"github.com/olekukonko/tablewriter"
 	"github.com/olekukonko/tablewriter/tw"
 	"github.com/sirupsen/logrus"
+	"github.com/skevetter/log"
+	"github.com/skevetter/log/scanner"
 )
 
 func PrintTable(s log.Logger, header []string, values [][]string) {

@@ -14,13 +14,13 @@ import (
 	"github.com/acarl005/stripansi"
 	"github.com/go-logr/logr"
 	goansi "github.com/k0kubun/go-ansi"
-	"github.com/loft-sh/log/hash"
-	"github.com/loft-sh/log/scanner"
-	"github.com/loft-sh/log/survey"
-	"github.com/loft-sh/log/terminal"
 	"github.com/mgutz/ansi"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/skevetter/log/hash"
+	"github.com/skevetter/log/scanner"
+	"github.com/skevetter/log/survey"
+	"github.com/skevetter/log/terminal"
 )
 
 func GetInstance() Logger {

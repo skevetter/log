@@ -11,8 +11,8 @@ import (
 
 	zaphook "github.com/Sytten/logrus-zap-hook"
 	"github.com/go-logr/logr"
-	"github.com/loft-sh/log/logr/zapr"
 	"github.com/sirupsen/logrus"
+	"github.com/skevetter/log/logr/zapr"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"k8s.io/klog/v2"
