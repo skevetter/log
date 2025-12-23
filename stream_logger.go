@@ -340,12 +340,16 @@ func (s *StreamLogger) writeMessage(fnType logFunctionType, message string) {
 			now := time.Now()
 			_, _ = stream.Write([]byte(ansi.Color(formatInt(now.Hour())+":"+formatInt(now.Minute())+":"+formatInt(now.Second())+" ", "white+b")))
 			_, _ = stream.Write([]byte(ansi.Color(fnInformation.tag, fnInformation.color)))
-			_, _ = stream.Write([]byte(message))
+			msg := strings.TrimSuffix(message, "\n")
+			_, _ = stream.Write([]byte(msg))
 			if len(s.fields) > 0 {
 				for k, v := range s.fields {
-					_, _ = fmt.Fprintf(stream, " %s=%v", k, v)
+					value := fmt.Sprintf("%v", v)
+					value = strings.ReplaceAll(value, "\n", "\\n")
+					_, _ = fmt.Fprintf(stream, " %s=%s", k, value)
 				}
 			}
+			_, _ = stream.Write([]byte("\n"))
 		case JSONFormat:
 			s.writeJSON(message, fnInformation.logLevel)
 		}
