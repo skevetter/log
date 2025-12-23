@@ -341,18 +341,9 @@ func (s *StreamLogger) writeMessage(fnType logFunctionType, message string) {
 			_, _ = stream.Write([]byte(ansi.Color(formatInt(now.Hour())+":"+formatInt(now.Minute())+":"+formatInt(now.Second())+" ", "white+b")))
 			_, _ = stream.Write([]byte(ansi.Color(fnInformation.tag, fnInformation.color)))
 			_, _ = stream.Write([]byte(message))
-
-			// Write fields if present
 			if len(s.fields) > 0 {
-				fieldsStr := ""
 				for k, v := range s.fields {
-					fieldsStr += fmt.Sprintf("\n%s=%v", k, v)
-				}
-				if fieldsStr != "" {
-					_, _ = stream.Write([]byte(fieldsStr))
-					if !strings.HasSuffix(message, "\n") {
-						_, _ = stream.Write([]byte("\n"))
-					}
+					_, _ = fmt.Fprintf(stream, " %s=%v", k, v)
 				}
 			}
 		case JSONFormat:
