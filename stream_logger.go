@@ -367,7 +367,7 @@ func (s *StreamLogger) writeMessage(fnType logFunctionType, message string) {
 				for k, v := range s.fields {
 					value := fmt.Sprintf("%v", v)
 					value = strings.ReplaceAll(value, "\n", "\\n")
-					fmt.Fprintf(stream, " %s=%s", k, value)
+					fmt.Fprintf(stream, " %s:%s", ansi.Color(k, "magenta+b"), ansi.Color(value, "white+u"))
 				}
 			}
 			fmt.Fprint(stream, "\n")
