@@ -6,6 +6,7 @@ import (
 	"io"
 	"maps"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -160,7 +161,7 @@ var fnTypeInformationMap = map[logFunctionType]*fnTypeInformation{
 	},
 	warnFn: {
 		tag:      "warn ",
-		color:    "red+b",
+		color:    "yellow+b",
 		logLevel: logrus.WarnLevel,
 	},
 	errorFn: {
@@ -319,37 +320,57 @@ func (s *StreamLogger) writePrefixes(message string) string {
 func (s *StreamLogger) writeMessage(fnType logFunctionType, message string) {
 	fnInformation := fnTypeInformationMap[fnType]
 	message = s.writePrefixes(message)
-	for _, s := range s.sinks {
-		if fnInformation.logLevel == logrus.PanicLevel || fnInformation.logLevel == logrus.FatalLevel {
-			s.Print(logrus.ErrorLevel, message)
-		} else {
-			s.Print(fnInformation.logLevel, message)
-		}
+
+	for _, sink := range s.sinks {
+		sink.Print(fnInformation.logLevel, message)
 	}
 
 	if s.level >= fnInformation.logLevel {
 		stream := s.getStream(fnInformation.logLevel)
+
+		// Get caller info
+		_, file, line, ok := runtime.Caller(2)
+		caller := ""
+		if ok {
+			caller = fmt.Sprintf("%s:%d", file[strings.LastIndex(file, "/")+1:], line)
+		}
+
 		switch s.format {
 		case RawFormat:
-			_, _ = stream.Write([]byte(message))
+			msg := message
+			if !strings.HasSuffix(msg, "\n") {
+				msg += "\n"
+			}
+			fmt.Fprint(stream, msg)
 		case TimeFormat:
-			now := time.Now()
-			_, _ = stream.Write([]byte(ansi.Color(formatInt(now.Hour())+":"+formatInt(now.Minute())+":"+formatInt(now.Second())+" ", "white+b")))
-			_, _ = stream.Write([]byte(message))
+			timeStr := time.Now().Format("15:04:05")
+			msg := message
+			if !strings.HasSuffix(msg, "\n") {
+				msg += "\n"
+			}
+			fmt.Fprintf(stream, "%s %s", ansi.Color(timeStr, "white+b"), msg)
 		case TextFormat:
-			now := time.Now()
-			_, _ = stream.Write([]byte(ansi.Color(formatInt(now.Hour())+":"+formatInt(now.Minute())+":"+formatInt(now.Second())+" ", "white+b")))
-			_, _ = stream.Write([]byte(ansi.Color(fnInformation.tag, fnInformation.color)))
+			timeStr := time.Now().Format("15:04:05")
+			levelStr := strings.TrimSpace(fnInformation.tag)
+			callerStr := strings.TrimSpace(caller)
+
 			msg := strings.TrimSuffix(message, "\n")
-			_, _ = stream.Write([]byte(msg))
+			msg = strings.ReplaceAll(msg, "\n", "\\n")
+
+			fmt.Fprintf(stream, "%s %-5s %-10s %s",
+				ansi.Color(timeStr, "white+b"),
+				ansi.Color(levelStr, fnInformation.color),
+				ansi.Color(callerStr, "black+h"),
+				msg)
+
 			if len(s.fields) > 0 {
 				for k, v := range s.fields {
 					value := fmt.Sprintf("%v", v)
 					value = strings.ReplaceAll(value, "\n", "\\n")
-					_, _ = fmt.Fprintf(stream, " %s=%s", k, value)
+					fmt.Fprintf(stream, " %s=%s", k, value)
 				}
 			}
-			_, _ = stream.Write([]byte("\n"))
+			fmt.Fprint(stream, "\n")
 		case JSONFormat:
 			s.writeJSON(message, fnInformation.logLevel)
 		}
