@@ -7,9 +7,9 @@ import (
 	"maps"
 	"os"
 	"runtime"
-	"strconv"
 	"strings"
 	"sync"
+	"text/tabwriter"
 	"time"
 
 	"github.com/acarl005/stripansi"
@@ -181,14 +181,6 @@ var fnTypeInformationMap = map[logFunctionType]*fnTypeInformation{
 	},
 }
 
-func formatInt(i int) string {
-	formatted := strconv.Itoa(i)
-	if len(formatted) == 1 {
-		formatted = "0" + formatted
-	}
-	return formatted
-}
-
 func (s *StreamLogger) GetFormat() Format {
 	s.m.Lock()
 	defer s.m.Unlock()
@@ -353,24 +345,23 @@ func (s *StreamLogger) writeMessage(fnType logFunctionType, message string) {
 			timeStr := time.Now().Format("15:04:05")
 			levelStr := strings.TrimSpace(fnInformation.tag)
 			callerStr := strings.TrimSpace(caller)
+			msgStr := strings.TrimSpace(message)
 
-			msg := strings.TrimSuffix(message, "\n")
-			msg = strings.ReplaceAll(msg, "\n", "\\n")
-
-			fmt.Fprintf(stream, "%s %-5s %-10s %s",
+			w := tabwriter.NewWriter(stream, 0, 0, 1, ' ', 0)
+			fmt.Fprintf(w, "%s\t%s\t%s",
 				ansi.Color(timeStr, "white+b"),
 				ansi.Color(levelStr, fnInformation.color),
-				ansi.Color(callerStr, "black+h"),
-				msg)
+				msgStr)
 
 			if len(s.fields) > 0 {
 				for k, v := range s.fields {
-					value := fmt.Sprintf("%v", v)
-					value = strings.ReplaceAll(value, "\n", "\\n")
-					fmt.Fprintf(stream, " %s:%s", ansi.Color(k, "magenta+b"), ansi.Color(value, "white+u"))
+					fmt.Fprintf(w, "\t%s:%s", ansi.Color(k, "magenta+b"), ansi.Color(fmt.Sprintf("%v", v), "white+u"))
 				}
 			}
-			fmt.Fprint(stream, "\n")
+
+			fmt.Fprintf(w, "\t%s", ansi.Color(callerStr, "black+h"))
+			fmt.Fprint(w, "\n")
+			w.Flush()
 		case JSONFormat:
 			s.writeJSON(message, fnInformation.logLevel)
 		}
