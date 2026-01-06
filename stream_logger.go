@@ -9,7 +9,6 @@ import (
 	"runtime"
 	"strings"
 	"sync"
-	"text/tabwriter"
 	"time"
 
 	"github.com/acarl005/stripansi"
@@ -347,21 +346,18 @@ func (s *StreamLogger) writeMessage(fnType logFunctionType, message string) {
 			callerStr := strings.TrimSpace(caller)
 			msgStr := strings.TrimSpace(message)
 
-			w := tabwriter.NewWriter(stream, 0, 0, 1, ' ', 0)
-			fmt.Fprintf(w, "%s\t%s\t%s",
+			fmt.Fprintf(stream, "%s %s %s",
 				ansi.Color(timeStr, "white+b"),
 				ansi.Color(levelStr, fnInformation.color),
 				msgStr)
 
 			if len(s.fields) > 0 {
 				for k, v := range s.fields {
-					fmt.Fprintf(w, "\t%s:%s", ansi.Color(k, "magenta+b"), ansi.Color(fmt.Sprintf("%v", v), "white+u"))
+					fmt.Fprintf(stream, " %s:%s", ansi.Color(k, "magenta+b"), ansi.Color(fmt.Sprintf("%v", v), "white+u"))
 				}
 			}
 
-			fmt.Fprintf(w, "\t%s", ansi.Color(callerStr, "black+h"))
-			fmt.Fprint(w, "\n")
-			w.Flush()
+			fmt.Fprintf(stream, " %s\n", ansi.Color(callerStr, "black+h"))
 		case JSONFormat:
 			s.writeJSON(message, fnInformation.logLevel)
 		}
